@@ -1,5 +1,12 @@
 # Segment Anything
 
+## Tips
+1.Put sam_vit_b_01ec64.pth in ./checkpoint/sam/
+2.Put images from RawData/Training/img/* in ./data/imagesTr/
+3.Put images from RawData/Testing/img/* in ./data/imagesTs/
+4.Put labels from RawData/Training/label/* in ./data/labelsTr
+
+
 **[Meta AI Research, FAIR](https://ai.facebook.com/research/)**
 
 [Alexander Kirillov](https://alexander-kirillov.github.io/), [Eric Mintun](https://ericmintun.github.io/), [Nikhila Ravi](https://nikhilaravi.com/), [Hanzi Mao](https://hanzimao.me/), Chloe Rolland, Laura Gustafson, [Tete Xiao](https://tetexiao.com), [Spencer Whitehead](https://www.spencerwhitehead.com/), Alex Berg, Wan-Yen Lo, [Piotr Dollar](https://pdollar.github.io/), [Ross Girshick](https://www.rossgirshick.info/)
