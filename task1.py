@@ -1,6 +1,5 @@
 import torchvision.transforms as transforms
 import cfg
-import utils
 from evaluate import validation_sam
 from utils import *
 
