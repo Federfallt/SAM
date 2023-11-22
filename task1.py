@@ -4,9 +4,12 @@ from evaluate import validation_sam
 from utils import *
 
 args = cfg.parse_args()
-GPUdevice = torch.device('cuda', args.gpu_device)
 
-net = get_network(args, args.net, use_gpu=args.gpu, gpu_device = GPUdevice, distribution = args.distributed)
+device_ids = [0,1]
+device = GpuDataParallel()
+device.set_device(device_ids)
+
+net = get_network(args, device, args.net, use_gpu=args.gpu, distribution = args.distributed)
 
 '''load pretrained model'''
 if args.weights != 0:
@@ -52,7 +55,7 @@ transform_test_seg = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-nice_train_loader, nice_test_loader, transform_train, transform_val, train_list, val_list = get_decath_loader(args)
+nice_train_loader, nice_test_loader, transform_train, transform_val, train_list, val_list = get_decath_loader(args, device)
 
 '''begain valuation'''
 best_acc = 0.0
@@ -60,5 +63,5 @@ best_tol = 1e4
 
 epoch = 1
 net.eval()
-tol, (eiou, edice) = validation_sam(args, nice_test_loader, epoch, net)
+tol, (eiou, edice) = validation_sam(args, device, nice_test_loader, epoch, net)
 logger.info(f'Total score: {tol}, IOU: {eiou}, DICE: {edice} || @ epoch {epoch}.')

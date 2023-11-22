@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Function
+from torch.nn.parallel import DistributedDataParallel as DDP
 import torchvision
 import torchvision.utils as vutils
 import os
@@ -15,6 +16,7 @@ import dateutil.tz
 from monai.transforms import (
     Compose,
     CropForegroundd,
+    EnsureChannelFirstd,
     LoadImaged,
     Orientationd,
     RandFlipd,
@@ -33,7 +35,6 @@ from monai.data import (
 )
 
 args = cfg.parse_args()
-device = torch.device('cuda', args.gpu_device)
 
 class GpuDataParallel(object):
     def __init__(self):
@@ -42,6 +43,7 @@ class GpuDataParallel(object):
 
     def set_device(self, device):
         device = str(device)
+        torch.cuda.is_available()
         if device != 'None':
             self.gpu_list = [i for i in range(len(device.split(',')))]
             os.environ["CUDA_VISIBLE_DEVICES"] = device
@@ -87,7 +89,7 @@ class GpuDataParallel(object):
             for g in gpus:
                 torch.zeros(1).cuda(g)
 
-def get_network(args, net, use_gpu=True, gpu_device = 0, distribution = True):
+def get_network(args, device, net, use_gpu=True, distribution = True):
     """ return given network
     """
 
@@ -95,7 +97,7 @@ def get_network(args, net, use_gpu=True, gpu_device = 0, distribution = True):
         from segment_anything import SamPredictor, sam_model_registry
         from segment_anything.utils.transforms import ResizeLongestSide
 
-        net = sam_model_registry['vit_b'](checkpoint=args.sam_ckpt).to(device)
+        net = sam_model_registry['vit_b'](checkpoint=args.sam_ckpt).to(device.output_device)
     else:
         print('the network name you have entered is not supported yet')
         sys.exit()
@@ -103,14 +105,16 @@ def get_network(args, net, use_gpu=True, gpu_device = 0, distribution = True):
     if use_gpu:
         #net = net.cuda(device = gpu_device)
         if distribution != 'none':
-            net = torch.nn.DataParallel(net,device_ids=[int(id) for id in args.distributed.split(',')])
-            net = net.to(device=gpu_device)
+            #net = torch.nn.DataParallel(net,device_ids=[int(id) for id in args.distributed.split(',')])
+            net = torch.nn.DataParallel(net, device_ids=device.gpu_list, output_device=device.output_device)           
+            #net = net.to(device=gpu_device)
+            net = net.cuda(device=device.output_device)
         else:
-            net = net.to(device=gpu_device)
+            net = net.to(device=device.output_device)
 
     return net
 
-def get_decath_loader(args):
+def get_decath_loader(args, device):
     train_transforms = Compose(
         [   
             LoadImaged(keys=["image", "label"], ensure_channel_first=True),
@@ -129,7 +133,7 @@ def get_decath_loader(args):
                 pixdim=(1.5, 1.5, 2.0),
                 mode=("bilinear", "nearest"),
             ),
-            EnsureTyped(keys=["image", "label"], device=device, track_meta=False),
+            EnsureTyped(keys=["image", "label"], device=device.output_device, track_meta=False),
             RandCropByPosNegLabeld(
                 keys=["image", "label"],
                 label_key="label",
@@ -169,7 +173,8 @@ def get_decath_loader(args):
     )
     val_transforms = Compose(
         [
-            LoadImaged(keys=["image", "label"], ensure_channel_first=True),
+            LoadImaged(keys=["image", "label"]),
+            EnsureChannelFirstd(keys=["image", "label"], strict_check=False, channel_dim='no_channel'),
             ScaleIntensityRanged(
                 keys=["image"], a_min=-175, a_max=250, b_min=0.0, b_max=1.0, clip=True
             ),
@@ -180,7 +185,7 @@ def get_decath_loader(args):
                 pixdim=(1.5, 1.5, 2.0),
                 mode=("bilinear", "nearest"),
             ),
-            EnsureTyped(keys=["image", "label"], device=device, track_meta=True),
+            EnsureTyped(keys=["image", "label"], device=device.output_device, track_meta=True),
         ]
     )
 

@@ -7,9 +7,7 @@ from utils import *
 from monai.losses import DiceCELoss
 from einops import rearrange
 
-GPUdevice = torch.device('cuda', args.gpu_device)
-
-def validation_sam(args, val_loader, epoch, net: nn.Module, clean_dir=True):
+def validation_sam(args, device, val_loader, epoch, net: nn.Module, clean_dir=True):
      # eval mode
     net.eval()
 
@@ -25,8 +23,8 @@ def validation_sam(args, val_loader, epoch, net: nn.Module, clean_dir=True):
 
     with tqdm(total=n_val, desc='Validation round', unit='batch', leave=False) as pbar:
         for ind, pack in enumerate(val_loader):
-            imgsw = pack['image'].to(dtype = torch.float32, device = GPUdevice)
-            masksw = pack['label'].to(dtype = torch.float32, device = GPUdevice)
+            imgsw = pack['image'].to(dtype = torch.float32, device = device.output_device)
+            masksw = pack['label'].to(dtype = torch.float32, device = device.output_device)
             # for k,v in pack['image_meta_dict'].items():
             #     print(k)
             if 'pt' not in pack:
@@ -68,8 +66,8 @@ def validation_sam(args, val_loader, epoch, net: nn.Module, clean_dir=True):
                 if point_labels[0] != -1:
                     # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
                     point_coords = pt
-                    coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=GPUdevice)
-                    labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=GPUdevice)
+                    coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
+                    labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
                     coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
                     pt = (coords_torch, labels_torch)
 
@@ -77,21 +75,21 @@ def validation_sam(args, val_loader, epoch, net: nn.Module, clean_dir=True):
                 if hard:
                     true_mask_ave = (true_mask_ave > 0.5).float()
                     #true_mask_ave = cons_tensor(true_mask_ave)
-                imgs = imgs.to(dtype = mask_type,device = GPUdevice)
+                imgs = imgs.to(dtype = mask_type,device = device.output_device)
                 
                 '''test'''
                 with torch.no_grad():
-                    imge= net.image_encoder(imgs)
+                    imge= net.module.image_encoder(imgs)
 
-                    se, de = net.prompt_encoder(
+                    se, de = net.module.prompt_encoder(
                         points=pt,
                         boxes=None,
                         masks=None,
                     )
 
-                    pred, _ = net.mask_decoder(
+                    pred, _ = net.module.mask_decoder(
                         image_embeddings=imge,
-                        image_pe=net.prompt_encoder.get_dense_pe(),
+                        image_pe=net.module.prompt_encoder.get_dense_pe(),
                         sparse_prompt_embeddings=se,
                         dense_prompt_embeddings=de, 
                         multimask_output=False,
