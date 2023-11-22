@@ -2,8 +2,11 @@
 
 ## Tips
 1.Put sam_vit_b_01ec64.pth in ./checkpoint/sam/
+
 2.Put images from RawData/Training/img/* in ./data/imagesTr/
+
 3.Put images from RawData/Testing/img/* in ./data/imagesTs/
+
 4.Put labels from RawData/Training/label/* in ./data/labelsTr
 
 
