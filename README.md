@@ -1,7 +1,7 @@
 # Segment Anything
 
 ## Tips
-1.Put sam_vit_b_01ec64.pth in ./checkpoint/sam/
+1.Put [sam_vit_b_01ec64.pth](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth) in ./checkpoint/sam/
 
 2.Put images from RawData/Training/img/* in ./data/imagesTr/
 
