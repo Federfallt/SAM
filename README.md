@@ -7,7 +7,7 @@
 
 3.Put images from RawData/Testing/img/* in ./data/imagesTs/
 
-4.Put labels from RawData/Training/label/* in ./data/labelsTr
+4.Put labels from RawData/Training/label/* in ./data/labelsTr/
 
 ## Origin README
 
