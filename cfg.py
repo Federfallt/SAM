@@ -12,6 +12,7 @@ def parse_args():
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
     parser.add_argument('-distributed', type=bool, default=True, help='use multi GPU or not')
     parser.add_argument('-gpu_device', type=int, default=0, help='use which gpu')
+    parser.add_argument('-multigpu_device', type=str, default='0,1', help='use which gpus')
 
     # pretrain
     parser.add_argument('-weights', type=str, default = 0, help='the weights file you want to test')
@@ -29,10 +30,10 @@ def parse_args():
 
     #train
     parser.add_argument('-lr', type=float, default=1e-4, help='initial learning rate')
-    parser.add_argument('-val_freq',type=int,default=100,help='interval between each validation')
+    parser.add_argument('-val_freq',type=int,default=5,help='interval between each validation')
 
     # evaluate
-    parser.add_argument('-evl_chunk', type=int, default=None , help='evaluation chunk')
+    parser.add_argument('-evl_chunk', type=int, default=None, help='evaluation chunk')
 
     # visualization
     parser.add_argument('-vis', type=int, default=None, help='visualization')
@@ -54,8 +55,8 @@ def parse_args():
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-uinch', type=int, default=1, help='input channel of unet')
     parser.add_argument('-imp_lr', type=float, default=3e-4, help='implicit learning rate')
-    parser.add_argument('-base_weights', type=str, default = 0, help='the weights baseline')
-    parser.add_argument('-sim_weights', type=str, default = 0, help='the weights sim')
+    parser.add_argument('-base_weights', type=str, default=0, help='the weights baseline')
+    parser.add_argument('-sim_weights', type=str, default=0, help='the weights sim')
 
     opt = parser.parse_args()
 
