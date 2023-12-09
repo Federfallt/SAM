@@ -104,7 +104,7 @@ def get_network(args, device, net, use_gpu=True, distribution = True):
 
     if use_gpu:
         #net = net.cuda(device = gpu_device)
-        if distribution != 'none':
+        if distribution:
             #net = torch.nn.DataParallel(net,device_ids=[int(id) for id in args.distributed.split(',')])
             net = torch.nn.DataParallel(net, device_ids=device.gpu_list, output_device=device.output_device)           
             #net = net.to(device=gpu_device)
@@ -113,6 +113,12 @@ def get_network(args, device, net, use_gpu=True, distribution = True):
             net = net.to(device=device.output_device)
 
     return net
+
+def save_checkpoint(states, is_best, output_dir,
+                    filename='checkpoint.pth'):
+    torch.save(states, os.path.join(output_dir, filename))
+    if is_best:
+        torch.save(states, os.path.join(output_dir, 'checkpoint_best.pth'))
 
 def get_decath_loader(args, device):
     train_transforms = Compose(

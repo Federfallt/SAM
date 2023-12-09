@@ -1,6 +1,6 @@
 import torchvision.transforms as transforms
 import cfg
-from evaluate import validation_sam
+import function
 from utils import *
 
 args = cfg.parse_args()
@@ -63,5 +63,5 @@ best_tol = 1e4
 
 epoch = 1
 net.eval()
-tol, (eiou, edice) = validation_sam(args, device, nice_test_loader, epoch, net)
+tol, (eiou, edice) = function.validation_sam(args, net, device, nice_test_loader, epoch)
 logger.info(f'Total score: {tol}, IOU: {eiou}, DICE: {edice} || @ epoch {epoch}.')
