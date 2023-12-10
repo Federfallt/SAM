@@ -31,16 +31,15 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, sche
                 point_labels = pack['p_label']
             name = pack['image_meta_dict']['filename_or_obj']
 
-            if args.thd:
-                pt = rearrange(pt, 'b n d -> (b d) n')
-                imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
-                masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
+            pt = rearrange(pt, 'b n d -> (b d) n')
+            imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
+            masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
 
-                imgs = imgs.repeat(1,3,1,1)
-                point_labels = torch.ones(imgs.size(0))
+            imgs = imgs.repeat(1,3,1,1)
+            point_labels = torch.ones(imgs.size(0))
 
-                imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
-                masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
+            imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
+            masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
             
             showp = pt
 
@@ -146,7 +145,12 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
                 masks = masksw[...,buoy:buoy + evl_ch]
                 buoy += evl_ch
 
-                pt = rearrange(pt, 'b n d -> (b d) n')
+                if args.prompt == 'single':
+                    pt = rearrange(pt, 'b n d -> (b d) n')
+                elif args.prompt == 'multi':
+                    exit(0)
+                elif args.prompt == 'box':
+                    exit(0)
                 imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
                 masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
                 imgs = imgs.repeat(1,3,1,1)

@@ -9,6 +9,8 @@
 
 4.Put labels from RawData/Training/label/* in ./data/labelsTr/
 
+5.Run task1: ``python task1.py -distributed True -gpu_device 0 -multigpu_device 0,1 -evl_chunk 2``
+
 ## Origin README
 
 **[Meta AI Research, FAIR](https://ai.facebook.com/research/)**

@@ -18,6 +18,9 @@ def parse_args():
     parser.add_argument('-weights', type=str, default = 0, help='the weights file you want to test')
     parser.add_argument('-pretrain', type=bool, default=False, help='adversary reverse')
 
+    #prompt
+    parser.add_argument('-prompt', type=str, default='single', help='prompt type:single, multi, box')
+
     # data
     parser.add_argument('-thd', type=bool, default=True, help='3d or not')
     parser.add_argument('-data_path', type=str, default='./data', help='The path of segmentation data')
