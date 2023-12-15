@@ -257,17 +257,21 @@ def generate_click_prompt(img, msk, pt_label = 1):
                 indices = torch.nonzero(msk_s)
                 if indices.size(0) == 0:
                     # generate a random array between [0-h, 0-h]:
-                    random_index = torch.randint(0, h, (2,2,)).to(device = msk.device)
+                    random_index = torch.randint(0, h, (2,2)).to(device = msk.device)
                     new_s = msk_s
                 else:
                     random_list = []
                     random_list.append(random.choice(indices))
                     random_list.append(random.choice(indices))
                     random_index = torch.stack(random_list, dim=0)
+                    label_list = []
+                    label_list.append(msk_s[random_index[0][0], random_index[0][1]])
+                    label_list.append(msk_s[random_index[1][0], random_index[1][1]])
                     label = msk_s[random_index[0][0], random_index[0][1]]
                     new_s = torch.zeros_like(msk_s)
                     # convert bool tensor to int
-                    new_s = (msk_s == label).to(dtype = torch.float)
+                    new_s = (msk_s == label[0]).to(dtype = torch.float)
+                    new_s = (msk_s == label[1]).to(dtype = torch.float)
                     # new_s[msk_s == label] = 1
                 pt_list_s.append(random_index)
                 msk_list_s.append(new_s)
@@ -276,7 +280,21 @@ def generate_click_prompt(img, msk, pt_label = 1):
             pt_list.append(pts)
             msk_list.append(msks)
     elif args.prompt == 'box':
-        exit(0)
+        if len(np.unique(msk)) > 1:
+            # get bounding box from mask
+            y_indices, x_indices = np.where(msk > 0)
+            x_min, x_max = np.min(x_indices), np.max(x_indices)
+            y_min, y_max = np.min(y_indices), np.max(y_indices)
+            # add perturbation to bounding box coordinates
+            H, W = msk.shape
+            x_min = max(0, x_min - np.random.randint(5, 20))
+            x_max = min(W, x_max + np.random.randint(5, 20))
+            y_min = max(0, y_min - np.random.randint(5, 20))
+            y_max = min(H, y_max + np.random.randint(5, 20))
+            bbox = [x_min, y_min, x_max, y_max]
+            return bbox
+        else:
+            return [0, 0, 256, 256]
 
     pt = torch.stack(pt_list, dim=-1)
     msk = torch.stack(msk_list, dim=-1)

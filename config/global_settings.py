@@ -4,7 +4,7 @@ from datetime import datetime
 CHECKPOINT_PATH = 'checkpoint'
 
 #total training epoches
-EPOCH = 50
+EPOCH = 30000
 step_size = 10
 i = 1
 MILESTONES = []

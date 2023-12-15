@@ -33,7 +33,7 @@ def parse_args():
 
     #train
     parser.add_argument('-lr', type=float, default=1e-4, help='initial learning rate')
-    parser.add_argument('-val_freq',type=int,default=5,help='interval between each validation')
+    parser.add_argument('-val_freq',type=int,default=50, help='interval between each validation')
 
     # evaluate
     parser.add_argument('-evl_chunk', type=int, default=None, help='evaluation chunk')

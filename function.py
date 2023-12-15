@@ -29,7 +29,7 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, sche
             else:
                 pt = pack['pt']
                 point_labels = pack['p_label']
-            name = pack['image_meta_dict']['filename_or_obj']
+            #name = pack['image_meta_dict']['filename_or_obj']
 
             pt = rearrange(pt, 'b n d -> (b d) n')
             imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
@@ -63,21 +63,21 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, sche
             imgs = imgs.to(dtype = mask_type,device = device.output_device)
             
             '''Train'''
-            for n, value in net.image_encoder.named_parameters():
+            for n, value in net.module.image_encoder.named_parameters():
                 if "Adapter" not in n:
                     value.requires_grad = False
-            imge= net.image_encoder(imgs)
+            imge= net.module.image_encoder(imgs)
 
             with torch.no_grad():
                 # imge= net.image_encoder(imgs)
-                se, de = net.prompt_encoder(
+                se, de = net.module.prompt_encoder(
                     points=pt,
                     boxes=None,
                     masks=None,
                 )
-            pred, _ = net.mask_decoder(
+            pred, _ = net.module.mask_decoder(
                 image_embeddings=imge,
-                image_pe=net.prompt_encoder.get_dense_pe(), 
+                image_pe=net.module.prompt_encoder.get_dense_pe(), 
                 sparse_prompt_embeddings=se,
                 dense_prompt_embeddings=de, 
                 multimask_output=False,
@@ -144,35 +144,57 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
                 imgs = imgsw[...,buoy:buoy + evl_ch]
                 masks = masksw[...,buoy:buoy + evl_ch]
                 buoy += evl_ch
-
+                
                 if args.prompt == 'single':
                     pt = rearrange(pt, 'b n d -> (b d) n')
+                    imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
+                    masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
+                    imgs = imgs.repeat(1,3,1,1)
+                    point_labels = torch.ones(imgs.size(0))
+
+                    imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
+                    masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
+                    
+                    showp = pt
+
+                    mask_type = torch.float32
+                    ind += 1
+                    b_size,c,w,h = imgs.size()
+                    longsize = w if w >=h else h
+
+                    if point_labels[0] != -1:
+                        # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
+                        point_coords = pt
+                        coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
+                        labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
+                        coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
+                        pt = (coords_torch, labels_torch)
                 elif args.prompt == 'multi':
-                    exit(0)
+                    pt = rearrange(pt, 'b n d -> (b d) n')
+                    imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
+                    masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
+                    imgs = imgs.repeat(1,3,1,1)
+                    point_labels = torch.ones(imgs.size(0))
+
+                    imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
+                    masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
+                    
+                    showp = pt
+
+                    mask_type = torch.float32
+                    ind += 1
+                    b_size,c,w,h = imgs.size()
+                    longsize = w if w >=h else h
+
+                    if point_labels[0] != -1:
+                        # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
+                        point_coords = pt
+                        coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
+                        labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
+                        coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
+                        pt = (coords_torch, labels_torch)
                 elif args.prompt == 'box':
                     exit(0)
-                imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
-                masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
-                imgs = imgs.repeat(1,3,1,1)
-                point_labels = torch.ones(imgs.size(0))
-
-                imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
-                masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
-                
-                showp = pt
-
-                mask_type = torch.float32
-                ind += 1
-                b_size,c,w,h = imgs.size()
-                longsize = w if w >=h else h
-
-                if point_labels[0] != -1:
-                    # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
-                    point_coords = pt
-                    coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
-                    labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
-                    coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
-                    pt = (coords_torch, labels_torch)
 
                 '''init'''
                 if hard:

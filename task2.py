@@ -66,7 +66,7 @@ transform_test_seg = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-nice_train_loader, nice_test_loader, transform_train, transform_val, train_list, val_list =get_decath_loader(args)
+nice_train_loader, nice_test_loader, transform_train, transform_val, train_list, val_list =get_decath_loader(args, device)
 
 '''checkpoint path and tensorboard'''
 checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME_NOW)
