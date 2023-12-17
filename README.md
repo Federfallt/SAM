@@ -15,7 +15,7 @@
 
 7.To run on one card, add: ``-distributed 0 -gpu_device X`` behind the above command.(X is your gpu id)
 
-8.To run on multi cards, add: ``-multigpu_device X,Y,Z`` behind the above command.(X,Y,Z are your gpu ids)
+8.To run on multiple cards, add: ``-multigpu_device X,Y,Z`` behind the above command.(X,Y,Z are your gpu ids)
 
 ## Origin README
 
