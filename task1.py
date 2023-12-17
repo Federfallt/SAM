@@ -6,7 +6,10 @@ from utils import *
 args = cfg.parse_args()
 
 device = GpuDataParallel()
-device.set_device(args.multigpu_device)
+if args.distributed:
+    device.set_device(args.multigpu_device)
+else:
+    device.set_device(args.gpu_device)
 
 net = get_network(args, device, args.net, use_gpu=args.gpu, distribution = args.distributed)
 

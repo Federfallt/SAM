@@ -11,7 +11,10 @@ import function
 args = cfg.parse_args()
 
 device = GpuDataParallel()
-device.set_device(args.multigpu_device)
+if args.distributed:
+    device.set_device(args.multigpu_device)
+else:
+    device.set_device(args.gpu_device)
 
 net = get_network(args, device, args.net, use_gpu=args.gpu, distribution = args.distributed)
 
@@ -93,6 +96,9 @@ for epoch in range(settings.EPOCH):
         net.eval()
         if epoch and epoch % args.val_freq == 0 or epoch == settings.EPOCH-1:
             tol, (eiou, edice) = function.validation_sam(args, net, device, nice_test_loader, epoch)
+            with open('task2_output.txt', 'a', encoding='utf-8') as output_file:
+                output_file.write(f'Total score: {tol}, IOU: {eiou}, DICE: {edice} || @ epoch {epoch}.')
+                output_file.write('\n')
             logger.info(f'Total score: {tol}, IOU: {eiou}, DICE: {edice} || @ epoch {epoch}.')
 
             if args.distributed:

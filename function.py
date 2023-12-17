@@ -63,25 +63,40 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, sche
             imgs = imgs.to(dtype = mask_type,device = device.output_device)
             
             '''Train'''
-            for n, value in net.module.image_encoder.named_parameters():
-                if "Adapter" not in n:
-                    value.requires_grad = False
-            imge= net.module.image_encoder(imgs)
+            if args.distributed:
+                with torch.no_grad():
+                    imge= net.module.image_encoder(imgs)
 
-            with torch.no_grad():
-                # imge= net.image_encoder(imgs)
-                se, de = net.module.prompt_encoder(
-                    points=pt,
-                    boxes=None,
-                    masks=None,
+                    se, de = net.module.prompt_encoder(
+                        points=pt,
+                        boxes=None,
+                        masks=None,
+                    )
+
+                pred, _ = net.module.mask_decoder(
+                    image_embeddings=imge,
+                    image_pe=net.module.prompt_encoder.get_dense_pe(), 
+                    sparse_prompt_embeddings=se,
+                    dense_prompt_embeddings=de, 
+                    multimask_output=False,
                 )
-            pred, _ = net.module.mask_decoder(
-                image_embeddings=imge,
-                image_pe=net.module.prompt_encoder.get_dense_pe(), 
-                sparse_prompt_embeddings=se,
-                dense_prompt_embeddings=de, 
-                multimask_output=False,
-              )
+            else:
+                with torch.no_grad():
+                    imge= net.image_encoder(imgs)
+
+                    se, de = net.prompt_encoder(
+                        points=pt,
+                        boxes=None,
+                        masks=None,
+                    )
+                    
+                pred, _ = net.mask_decoder(
+                    image_embeddings=imge,
+                    image_pe=net.prompt_encoder.get_dense_pe(), 
+                    sparse_prompt_embeddings=se,
+                    dense_prompt_embeddings=de, 
+                    multimask_output=False,
+                )
 
             loss = lossfunc(pred, masks)
 
@@ -204,21 +219,38 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
                 
                 '''test'''
                 with torch.no_grad():
-                    imge= net.module.image_encoder(imgs)
+                    if args.distributed:
+                        imge= net.module.image_encoder(imgs)
 
-                    se, de = net.module.prompt_encoder(
-                        points=pt,
-                        boxes=None,
-                        masks=None,
-                    )
+                        se, de = net.module.prompt_encoder(
+                            points=pt,
+                            boxes=None,
+                            masks=None,
+                        )
 
-                    pred, _ = net.module.mask_decoder(
-                        image_embeddings=imge,
-                        image_pe=net.module.prompt_encoder.get_dense_pe(),
-                        sparse_prompt_embeddings=se,
-                        dense_prompt_embeddings=de, 
-                        multimask_output=False,
-                    )
+                        pred, _ = net.module.mask_decoder(
+                            image_embeddings=imge,
+                            image_pe=net.module.prompt_encoder.get_dense_pe(),
+                            sparse_prompt_embeddings=se,
+                            dense_prompt_embeddings=de, 
+                            multimask_output=False,
+                        )
+                    else:
+                        imge= net.image_encoder(imgs)
+
+                        se, de = net.prompt_encoder(
+                            points=pt,
+                            boxes=None,
+                            masks=None,
+                        )
+
+                        pred, _ = net.mask_decoder(
+                            image_embeddings=imge,
+                            image_pe=net.prompt_encoder.get_dense_pe(),
+                            sparse_prompt_embeddings=se,
+                            dense_prompt_embeddings=de, 
+                            multimask_output=False,
+                        )
                 
                     tot += lossfunc(pred, masks)
 

@@ -103,11 +103,8 @@ def get_network(args, device, net, use_gpu=True, distribution = True):
         sys.exit()
 
     if use_gpu:
-        #net = net.cuda(device = gpu_device)
         if distribution:
-            #net = torch.nn.DataParallel(net,device_ids=[int(id) for id in args.distributed.split(',')])
             net = torch.nn.DataParallel(net, device_ids=device.gpu_list, output_device=device.output_device)           
-            #net = net.to(device=gpu_device)
             net = net.cuda(device=device.output_device)
         else:
             net = net.to(device=device.output_device)
