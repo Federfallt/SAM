@@ -10,7 +10,7 @@ def parse_args():
 
     # gpu
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
-    parser.add_argument('-distributed', type=bool, default=True, help='use multi GPU or not')
+    parser.add_argument('-distributed', type=int, default=1, help='use multi GPU or not')
     parser.add_argument('-gpu_device', type=int, default=0, help='use which gpu')
     parser.add_argument('-multigpu_device', type=str, default='0,1', help='use which gpus')
 

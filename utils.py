@@ -45,7 +45,10 @@ class GpuDataParallel(object):
         device = str(device)
         torch.cuda.is_available()
         if device != 'None':
-            self.gpu_list = [i for i in range(len(device.split(',')))]
+            if len(device) == 1:
+                self.gpu_list = [int(device)]
+            else:
+                self.gpu_list = list(map(int, device.split(',')))
             os.environ["CUDA_VISIBLE_DEVICES"] = device
             output_device = self.gpu_list[0]
             self.occupy_gpu(self.gpu_list)
@@ -89,7 +92,7 @@ class GpuDataParallel(object):
             for g in gpus:
                 torch.zeros(1).cuda(g)
 
-def get_network(args, device, net, use_gpu=True, distribution = True):
+def get_network(args, device, net, use_gpu=True, distribution= 1):
     """ return given network
     """
 
