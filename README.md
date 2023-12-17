@@ -13,6 +13,10 @@
 
 6.Run task2: ``python task2.py -b 2 -chunk 1 -num_sample 1 -evl_chunk 2``
 
+7.To run on one card, add: ``-distributed 0 -gpu_device X`` behind the above command.(X is your gpu id)
+
+8.To run on multi cards, add: ``-multigpu_device X,Y,Z`` behind the above command.(X,Y,Z are your gpu ids)
+
 ## Origin README
 
 **[Meta AI Research, FAIR](https://ai.facebook.com/research/)**
