@@ -6,7 +6,7 @@ from utils import *
 from monai.losses import DiceCELoss
 from einops import rearrange
 
-def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, schedulers=None, vis = 50):
+def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch):
     hard = 0
     epoch_loss = 0
     ind = 0
@@ -120,7 +120,7 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, sche
 
     return loss
 
-def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=True):
+def validation_sam(args, net: nn.Module, device, val_loader, epoch):
      # eval mode
     net.eval()
 
@@ -184,7 +184,7 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
                         labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
                         coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
                         pt = (coords_torch, labels_torch)
-                elif args.prompt == 'multi':
+                elif args.prompt == 'box':
                     pt = rearrange(pt, 'b n d -> (b d) n')
                     imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
                     masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
@@ -198,18 +198,6 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
 
                     mask_type = torch.float32
                     ind += 1
-                    b_size,c,w,h = imgs.size()
-                    longsize = w if w >=h else h
-
-                    if point_labels[0] != -1:
-                        # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
-                        point_coords = pt
-                        coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
-                        labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
-                        coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
-                        pt = (coords_torch, labels_torch)
-                elif args.prompt == 'box':
-                    exit(0)
 
                 '''init'''
                 if hard:
@@ -222,11 +210,18 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
                     if args.distributed:
                         imge= net.module.image_encoder(imgs)
 
-                        se, de = net.module.prompt_encoder(
-                            points=pt,
-                            boxes=None,
-                            masks=None,
-                        )
+                        if args.prompt == 'single':
+                            se, de = net.module.prompt_encoder(
+                                points=pt,
+                                boxes=None,
+                                masks=None,
+                            )
+                        elif args.prompt == 'box':
+                            se, de = net.module.prompt_encoder(
+                                points=None,
+                                boxes=pt,
+                                masks=None,
+                            )
 
                         pred, _ = net.module.mask_decoder(
                             image_embeddings=imge,
@@ -238,11 +233,18 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, clean_dir=Tr
                     else:
                         imge= net.image_encoder(imgs)
 
-                        se, de = net.prompt_encoder(
-                            points=pt,
-                            boxes=None,
-                            masks=None,
-                        )
+                        if args.prompt == 'single':
+                            se, de = net.prompt_encoder(
+                                points=pt,
+                                boxes=None,
+                                masks=None,
+                            )
+                        elif args.prompt == 'box':
+                            se, de = net.prompt_encoder(
+                                points=None,
+                                boxes=pt,
+                                masks=None,
+                            )
 
                         pred, _ = net.mask_decoder(
                             image_embeddings=imge,

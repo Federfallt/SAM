@@ -9,13 +9,15 @@
 
 4.Put labels from RawData/Training/label/* in ./data/labelsTr/
 
-5.Run task1: ``python task1.py -evl_chunk 2``
+5.Run task1 with single point prompt: ``python task1.py -evl_chunk 2``
 
-6.Run task2: ``python task2.py -b 2 -chunk 1 -num_sample 1 -evl_chunk 2``
+6.Run task1 with box prompt: ``python task1.py -evl_chunk 1 -prompt box``
 
-7.To run on one card, add: ``-distributed 0 -gpu_device X`` behind the above command.(X is your gpu id)
+7.Run task2: ``python task2.py -b 2 -chunk 1 -num_sample 1 -evl_chunk 2``
 
-8.To run on multiple cards, add: ``-multigpu_device X,Y,Z`` behind the above command.(X,Y,Z are your gpu ids)
+8.To run on one card, add: ``-distributed 0 -gpu_device X`` behind the above command.(X is your gpu id)
+
+9.To run on multiple cards, add: ``-multigpu_device X,Y,Z`` behind the above command.(X,Y,Z are your gpu ids)
 
 ## Origin README
 
