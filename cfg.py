@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument('-multigpu_device', type=str, default='0,1', help='use which gpus')
 
     # pretrain
-    parser.add_argument('-weights', type=str, default = 0, help='the weights file you want to test')
+    parser.add_argument('-weights', type=str, default =0, help='the weights file you want to test')
     parser.add_argument('-pretrain', type=bool, default=False, help='adversary reverse')
 
     #prompt

@@ -22,7 +22,7 @@ if args.weights != 0:
     loc = 'cuda:{}'.format(args.gpu_device)
     checkpoint = torch.load(checkpoint_file, map_location=loc)
     start_epoch = checkpoint['epoch']
-    best_tol = checkpoint['best_tol']
+    best_dice = checkpoint['best_dice']
     
     net.load_state_dict(checkpoint['state_dict'],strict=False)
     # optimizer.load_state_dict(checkpoint['optimizer'], strict=False)
@@ -61,7 +61,7 @@ nice_train_loader, nice_test_loader, transform_train, transform_val, train_list,
 
 '''begain valuation'''
 best_acc = 0.0
-best_tol = 1e4
+best_dice = 1e4
 
 epoch = 1
 net.eval()

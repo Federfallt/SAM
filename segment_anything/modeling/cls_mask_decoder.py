@@ -15,7 +15,7 @@ from .common import LayerNorm2d
 # num of classes
 num_classes = 13
 
-class MaskDecoder(nn.Module):
+class ClsMaskDecoder(nn.Module):
     def __init__(
         self,
         *,
