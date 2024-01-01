@@ -6,7 +6,7 @@ from utils import *
 from monai.losses import DiceCELoss
 from einops import rearrange
 
-def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch):
+def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls = 0):
     hard = 0
     epoch_loss = 0
     ind = 0
@@ -73,13 +73,22 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch):
                         masks=None,
                     )
 
-                pred, _ = net.module.mask_decoder(
-                    image_embeddings=imge,
-                    image_pe=net.module.prompt_encoder.get_dense_pe(), 
-                    sparse_prompt_embeddings=se,
-                    dense_prompt_embeddings=de, 
-                    multimask_output=False,
-                )
+                if cls:
+                    pred, _, output_class = net.module.mask_decoder(
+                        image_embeddings=imge,
+                        image_pe=net.module.prompt_encoder.get_dense_pe(), 
+                        sparse_prompt_embeddings=se,
+                        dense_prompt_embeddings=de, 
+                        multimask_output=False,
+                    )
+                else:
+                    pred, _ = net.module.mask_decoder(
+                        image_embeddings=imge,
+                        image_pe=net.module.prompt_encoder.get_dense_pe(), 
+                        sparse_prompt_embeddings=se,
+                        dense_prompt_embeddings=de, 
+                        multimask_output=False,
+                    )
             else:
                 with torch.no_grad():
                     imge= net.image_encoder(imgs)
@@ -89,14 +98,23 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch):
                         boxes=None,
                         masks=None,
                     )
-                    
-                pred, _ = net.mask_decoder(
-                    image_embeddings=imge,
-                    image_pe=net.prompt_encoder.get_dense_pe(), 
-                    sparse_prompt_embeddings=se,
-                    dense_prompt_embeddings=de, 
-                    multimask_output=False,
-                )
+
+                if cls:
+                    pred, _, output_class = net.mask_decoder(
+                        image_embeddings=imge,
+                        image_pe=net.prompt_encoder.get_dense_pe(), 
+                        sparse_prompt_embeddings=se,
+                        dense_prompt_embeddings=de, 
+                        multimask_output=False,
+                    )
+                else:  
+                    pred, _ = net.mask_decoder(
+                        image_embeddings=imge,
+                        image_pe=net.prompt_encoder.get_dense_pe(), 
+                        sparse_prompt_embeddings=se,
+                        dense_prompt_embeddings=de, 
+                        multimask_output=False,
+                    )
 
             loss = lossfunc(pred, masks)
 
@@ -108,19 +126,11 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch):
             optimizer.step()
             optimizer.zero_grad()
 
-            '''vis images'''
-            #if vis:
-            #    if ind % vis == 0:
-            #        namecat = 'Train'
-            #        for na in name:
-            #            namecat = namecat + na.split('/')[-1].split('.')[0] + '+'
-            #        vis_image(imgs,pred,masks, os.path.join(args.path_helper['sample_path'], namecat+'epoch+' +str(epoch) + '.jpg'), reverse=False, points=showp)
-
             pbar.update()
 
     return loss
 
-def validation_sam(args, net: nn.Module, device, val_loader, epoch):
+def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
      # eval mode
     net.eval()
 
@@ -223,13 +233,22 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch):
                                 masks=None,
                             )
 
-                        pred, _ = net.module.mask_decoder(
-                            image_embeddings=imge,
-                            image_pe=net.module.prompt_encoder.get_dense_pe(),
-                            sparse_prompt_embeddings=se,
-                            dense_prompt_embeddings=de, 
-                            multimask_output=False,
-                        )
+                        if cls:
+                            pred, _, output_class = net.module.mask_decoder(
+                                image_embeddings=imge,
+                                image_pe=net.module.prompt_encoder.get_dense_pe(),
+                                sparse_prompt_embeddings=se,
+                                dense_prompt_embeddings=de, 
+                                multimask_output=False,
+                            )
+                        else:
+                            pred, _ = net.module.mask_decoder(
+                                image_embeddings=imge,
+                                image_pe=net.module.prompt_encoder.get_dense_pe(),
+                                sparse_prompt_embeddings=se,
+                                dense_prompt_embeddings=de, 
+                                multimask_output=False,
+                            )
                     else:
                         imge= net.image_encoder(imgs)
 
@@ -246,24 +265,24 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch):
                                 masks=None,
                             )
 
-                        pred, _ = net.mask_decoder(
-                            image_embeddings=imge,
-                            image_pe=net.prompt_encoder.get_dense_pe(),
-                            sparse_prompt_embeddings=se,
-                            dense_prompt_embeddings=de, 
-                            multimask_output=False,
-                        )
+                        if cls:
+                            pred, _, output_class = net.mask_decoder(
+                                image_embeddings=imge,
+                                image_pe=net.prompt_encoder.get_dense_pe(),
+                                sparse_prompt_embeddings=se,
+                                dense_prompt_embeddings=de, 
+                                multimask_output=False,
+                            )
+                        else:
+                            pred, _ = net.mask_decoder(
+                                image_embeddings=imge,
+                                image_pe=net.prompt_encoder.get_dense_pe(),
+                                sparse_prompt_embeddings=se,
+                                dense_prompt_embeddings=de, 
+                                multimask_output=False,
+                            )
                 
-                    tot += lossfunc(pred, masks)
-
-                    '''vis images'''
-                    #if ind % args.vis == 0:
-                    #    namecat = 'Test'
-                    #    for na in name:
-                    #        img_name = na.split('/')[-1].split('.')[0]
-                    #        namecat = namecat + img_name + '+'
-                    #    vis_image(imgs,pred, masks, os.path.join(args.path_helper['sample_path'], namecat+'epoch+' +str(epoch) + '.jpg'), reverse=False, points=showp)
-                    
+                    tot += lossfunc(pred, masks)                    
 
                     temp = eval_seg(pred, masks, threshold)
                     mix_res = tuple([sum(a) for a in zip(mix_res, temp)])

@@ -8,11 +8,13 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 from .image_encoder import ImageEncoderViT
 from .mask_decoder import MaskDecoder
 from .prompt_encoder import PromptEncoder
+# task3
+from .cls_mask_decoder import ClsMaskDecoder
 
 
 class Sam(nn.Module):
@@ -23,7 +25,7 @@ class Sam(nn.Module):
         self,
         image_encoder: ImageEncoderViT,
         prompt_encoder: PromptEncoder,
-        mask_decoder: MaskDecoder,
+        mask_decoder: Union[MaskDecoder, ClsMaskDecoder], # task3
         pixel_mean: List[float] = [123.675, 116.28, 103.53],
         pixel_std: List[float] = [58.395, 57.12, 57.375],
     ) -> None:

@@ -16,6 +16,10 @@ if args.distributed:
 else:
     device.set_device(args.gpu_device)
 
+if args.cls == 0:
+    print('please add -cls 1 in the command line')
+    exit(0)
+
 net = get_network(args, device, args.net, use_gpu=args.gpu, distribution = args.distributed)
 
 if args.pretrain:
@@ -88,14 +92,14 @@ for epoch in range(settings.EPOCH):
     if args.mod == 'sam_adpt':
         net.train()
         time_start = time.time()
-        loss = function.train_sam(args, net, device, optimizer, nice_train_loader, epoch)
+        loss = function.train_sam(args, net, device, optimizer, nice_train_loader, epoch, args.cls)
         logger.info(f'Train loss: {loss}|| @ epoch {epoch}.')
         time_end = time.time()
         print('time_for_training ', time_end - time_start)
 
         net.eval()
         if epoch and epoch % args.val_freq == 0 or epoch == settings.EPOCH-1:
-            tol, (eiou, edice) = function.validation_sam(args, net, device, nice_test_loader, epoch)
+            tol, (eiou, edice) = function.validation_sam(args, net, device, nice_test_loader, epoch, args.cls)
             with open('task2_output.txt', 'a', encoding='utf-8') as output_file:
                 output_file.write(f'Total score: {tol}, IOU: {eiou}, DICE: {edice} || @ epoch {epoch}.')
                 output_file.write('\n')

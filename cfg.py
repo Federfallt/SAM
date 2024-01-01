@@ -7,6 +7,7 @@ def parse_args():
     parser.add_argument('-mod', type=str, default='sam_adpt', help='mod type:seg, cls, val_ad')
     parser.add_argument('-exp_name', type=str, default='msa-3d-sam-btcv', help='net type')
     parser.add_argument('-sam_ckpt', type=str, default='./checkpoint/sam/sam_vit_b_01ec64.pth', help='sam checkpoint address')
+    parser.add_argument('-cls', type=int, default=0, help='output class or not')
 
     # gpu
     parser.add_argument('-gpu', type=bool, default=True, help='use gpu or not')
@@ -37,9 +38,6 @@ def parse_args():
 
     # evaluate
     parser.add_argument('-evl_chunk', type=int, default=None, help='evaluation chunk')
-
-    # visualization
-    parser.add_argument('-vis', type=int, default=None, help='visualization')
 
     # extra
     parser.add_argument('-baseline', type=str, default='unet', help='baseline net type')
