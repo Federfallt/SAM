@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Function
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torchvision
-import torchvision.utils as vutils
 import os
 import sys
 import cfg
@@ -55,7 +52,6 @@ class GpuDataParallel(object):
         self.output_device = output_device if len(self.gpu_list) > 0 else "cpu"
 
     def model_to_device(self, model):
-        # model = convert_model(model)
         model = model.to(self.output_device)
         if len(self.gpu_list) > 1:
             model = nn.DataParallel(
@@ -241,7 +237,6 @@ def generate_click_prompt(img, msk, pt_label = 1):
                     new_s = torch.zeros_like(msk_s)
                     # convert bool tensor to int
                     new_s = (msk_s == label).to(dtype = torch.float)
-                    # new_s[msk_s == label] = 1
                 pt_list_s.append(random_index)
                 msk_list_s.append(new_s)
             pts = torch.stack(pt_list_s, dim=0)
@@ -279,7 +274,7 @@ def generate_click_prompt(img, msk, pt_label = 1):
 
     msk = msk.unsqueeze(1)
 
-    return img, pt, msk #[b, 2, d], [b, c, h, w, d]
+    return img, pt, msk # [b, 2, d], [b, c, h, w, d]
 
 def create_logger(log_dir, phase='train'):
     time_str = time.strftime('%Y-%m-%d-%H-%M')

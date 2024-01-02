@@ -22,14 +22,11 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
         for pack in train_loader:
             imgs = pack['image'].to(dtype = torch.float32, device = device.output_device)
             masks = pack['label'].to(dtype = torch.float32, device = device.output_device)
-            # for k,v in pack['image_meta_dict'].items():
-            #     print(k)
             if 'pt' not in pack:
                 imgs, pt, masks = generate_click_prompt(imgs, masks)
             else:
                 pt = pack['pt']
                 point_labels = pack['p_label']
-            #name = pack['image_meta_dict']['filename_or_obj']
 
             pt = rearrange(pt, 'b n d -> (b d) n')
             imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
@@ -40,8 +37,6 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
 
             imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
             masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
-            
-            showp = pt
 
             mask_type = torch.float32
             ind += 1
@@ -49,7 +44,6 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
             longsize = w if w >=h else h
 
             if point_labels[0] != -1:
-                # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
                 point_coords = pt
                 coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
                 labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
@@ -59,7 +53,6 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
             '''init'''
             if hard:
                 true_mask_ave = (true_mask_ave > 0.5).float()
-                #true_mask_ave = cons_tensor(true_mask_ave)
             imgs = imgs.to(dtype = mask_type,device = device.output_device)
             
             '''Train'''
@@ -122,7 +115,6 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
             epoch_loss += loss.item()
             loss.backward()
 
-            # nn.utils.clip_grad_value_(net.parameters(), 0.1)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -131,11 +123,11 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
     return loss
 
 def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
-     # eval mode
+    # eval mode
     net.eval()
 
     mask_type = torch.float32
-    n_val = len(val_loader)  # the number of batch
+    n_val = len(val_loader) # the number of batch
     ave_res, mix_res = (0,0,0,0), (0,0,0,0)
     rater_res = [(0,0,0,0) for _ in range(6)]
     tot = 0
@@ -148,14 +140,11 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
         for ind, pack in enumerate(val_loader):
             imgsw = pack['image'].to(dtype = torch.float32, device = device.output_device)
             masksw = pack['label'].to(dtype = torch.float32, device = device.output_device)
-            # for k,v in pack['image_meta_dict'].items():
-            #     print(k)
             if 'pt' not in pack:
                 imgsw, ptw, masksw = generate_click_prompt(imgsw, masksw)
             else:
                 ptw = pack['pt']
                 point_labels = pack['p_label']
-            #name = pack['image_meta_dict']['filename_or_obj']
             
             buoy = 0
             if args.evl_chunk:
@@ -179,8 +168,6 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
 
                     imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
                     masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
-                    
-                    showp = pt
 
                     mask_type = torch.float32
                     ind += 1
@@ -188,7 +175,6 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                     longsize = w if w >=h else h
 
                     if point_labels[0] != -1:
-                        # point_coords = samtrans.ResizeLongestSide(longsize).apply_coords(pt, (h, w))
                         point_coords = pt
                         coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
                         labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
@@ -203,8 +189,6 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
 
                     imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
                     masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
-                    
-                    showp = pt
 
                     mask_type = torch.float32
                     ind += 1
@@ -212,7 +196,6 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                 '''init'''
                 if hard:
                     true_mask_ave = (true_mask_ave > 0.5).float()
-                    #true_mask_ave = cons_tensor(true_mask_ave)
                 imgs = imgs.to(dtype = mask_type,device = device.output_device)
                 
                 '''test'''

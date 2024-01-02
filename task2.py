@@ -37,7 +37,6 @@ if args.weights != 0:
     best_dice = checkpoint['best_dice']
     
     net.load_state_dict(checkpoint['state_dict'],strict=False)
-    # optimizer.load_state_dict(checkpoint['optimizer'], strict=False)
 
     args.path_helper = checkpoint['path_helper']
     logger = create_logger(args.path_helper['log_path'])
@@ -76,7 +75,7 @@ checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME
 if not os.path.exists(settings.LOG_DIR):
     os.mkdir(settings.LOG_DIR)
 
-#create checkpoint folder to save model
+# create checkpoint folder to save model
 if not os.path.exists(checkpoint_path):
     os.makedirs(checkpoint_path)
 checkpoint_path = os.path.join(checkpoint_path, '{net}-{epoch}-{type}.pth')

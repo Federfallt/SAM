@@ -25,7 +25,6 @@ if args.weights != 0:
     best_dice = checkpoint['best_dice']
     
     net.load_state_dict(checkpoint['state_dict'],strict=False)
-    # optimizer.load_state_dict(checkpoint['optimizer'], strict=False)
 
     args.path_helper = checkpoint['path_helper']
     logger = create_logger(args.path_helper['log_path'])

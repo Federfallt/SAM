@@ -5,6 +5,7 @@ def parse_args():
     # basic
     parser.add_argument('-net', type=str, default='sam', help='net type')
     parser.add_argument('-mod', type=str, default='sam_adpt', help='mod type:seg, cls, val_ad')
+    parser.add_argument('-baseline', type=str, default='unet', help='baseline net type')
     parser.add_argument('-exp_name', type=str, default='msa-3d-sam-btcv', help='net type')
     parser.add_argument('-sam_ckpt', type=str, default='./checkpoint/sam/sam_vit_b_01ec64.pth', help='sam checkpoint address')
     parser.add_argument('-cls', type=int, default=0, help='output class or not')
@@ -38,26 +39,6 @@ def parse_args():
 
     # evaluate
     parser.add_argument('-evl_chunk', type=int, default=None, help='evaluation chunk')
-
-    # extra
-    parser.add_argument('-baseline', type=str, default='unet', help='baseline net type')
-    parser.add_argument('-seg_net', type=str, default='transunet', help='net type')
-    parser.add_argument('-type', type=str, default='map', help='condition type:ave,rand,rand_map')
-    parser.add_argument('-reverse', type=bool, default=False, help='adversary reverse')
-    parser.add_argument('-sim_gpu', type=int, default=0, help='split sim to this gpu')
-    parser.add_argument('-epoch_ini', type=int, default=1, help='start epoch')
-    parser.add_argument('-patch_size', type=int, default=2, help='patch_size')
-    parser.add_argument('-dim', type=int, default=512, help='dim_size')
-    parser.add_argument('-depth', type=int, default=1, help='depth')
-    parser.add_argument('-heads', type=int, default=16, help='heads number')
-    parser.add_argument('-mlp_dim', type=int, default=1024, help='mlp_dim')
-    parser.add_argument('-w', type=int, default=4, help='number of workers for dataloader')
-    parser.add_argument('-s', type=bool, default=True, help='whether shuffle the dataset')
-    parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
-    parser.add_argument('-uinch', type=int, default=1, help='input channel of unet')
-    parser.add_argument('-imp_lr', type=float, default=3e-4, help='implicit learning rate')
-    parser.add_argument('-base_weights', type=str, default=0, help='the weights baseline')
-    parser.add_argument('-sim_weights', type=str, default=0, help='the weights sim')
 
     opt = parser.parse_args()
 
