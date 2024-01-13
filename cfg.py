@@ -20,8 +20,8 @@ def parse_args():
     parser.add_argument('-weights', type=str, default =0, help='the weights file you want to test')
     parser.add_argument('-pretrain', type=bool, default=False, help='adversary reverse')
 
-    #prompt
-    parser.add_argument('-prompt', type=str, default='single', help='prompt type:single, multi, box')
+    # prompt
+    parser.add_argument('-prompt', type=str, default='single', help='prompt type:single, multi, box, grid')
 
     # data
     parser.add_argument('-thd', type=bool, default=True, help='3d or not')
@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('-chunk', type=int, default=96, help='crop volume depth')
     parser.add_argument('-num_sample', type=int, default=4, help='sample pos and neg')
 
-    #train
+    # train
     parser.add_argument('-lr', type=float, default=1e-4, help='initial learning rate')
     parser.add_argument('-val_freq',type=int,default=50, help='interval between each validation')
 

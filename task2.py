@@ -23,7 +23,7 @@ if args.pretrain:
     net.load_state_dict(weights,strict=False)
 
 optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5) #learning rate decay
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
 '''load pretrained model'''
 if args.weights != 0:
@@ -75,7 +75,6 @@ checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, settings.TIME
 if not os.path.exists(settings.LOG_DIR):
     os.mkdir(settings.LOG_DIR)
 
-# create checkpoint folder to save model
 if not os.path.exists(checkpoint_path):
     os.makedirs(checkpoint_path)
 checkpoint_path = os.path.join(checkpoint_path, '{net}-{epoch}-{type}.pth')

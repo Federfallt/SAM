@@ -214,8 +214,7 @@ def get_decath_loader(args, device):
 
     return train_loader, val_loader, train_transforms, val_transforms, datalist, val_files
 
-def generate_click_prompt(img, msk, pt_label = 1):
-    # return: prompt, prompt mask
+def generate_click_prompt(img, msk):
     pt_list = []
     msk_list = []
     b, c, h, w, d = msk.size()
@@ -228,17 +227,52 @@ def generate_click_prompt(img, msk, pt_label = 1):
                 msk_s = msk[j,:,:,i]
                 indices = torch.nonzero(msk_s)
                 if indices.size(0) == 0:
-                    # generate a random array between [0-h, 0-h]:
                     random_index = torch.randint(0, h, (2,)).to(device = msk.device)
                     new_s = msk_s
                 else:
                     random_index = random.choice(indices)
                     label = msk_s[random_index[0], random_index[1]]
                     new_s = torch.zeros_like(msk_s)
-                    # convert bool tensor to int
                     new_s = (msk_s == label).to(dtype = torch.float)
                 pt_list_s.append(random_index)
                 msk_list_s.append(new_s)
+            pts = torch.stack(pt_list_s, dim=0)
+            msks = torch.stack(msk_list_s, dim=0)
+            pt_list.append(pts)
+            msk_list.append(msks)
+    elif args.prompt == 'multi':
+        for i in range(d):
+            pt_list_s = []
+            msk_list_s = []
+            for j in range(b):
+                msk_s = msk[j,:,:,i]
+                indices = torch.nonzero(msk_s)
+                if indices.size(0) == 0:
+                    random_index_1 = torch.randint(0, h, (2,)).to(device = msk.device)
+                    random_index_2 = torch.randint(0, h, (2,)).to(device = msk.device)
+                    random_index_3 = torch.randint(0, h, (2,)).to(device = msk.device)
+                    new_s_1 = msk_s
+                    new_s_2 = msk_s
+                    new_s_3 = msk_s
+                else:
+                    random_index_1 = random.choice(indices)
+                    random_index_2 = random.choice(indices)
+                    random_index_3 = random.choice(indices)
+                    label_1 = msk_s[random_index_1[0], random_index_1[1]]
+                    label_2 = msk_s[random_index_2[0], random_index_2[1]]
+                    label_3 = msk_s[random_index_3[0], random_index_3[1]]
+                    new_s_1 = torch.zeros_like(msk_s)
+                    new_s_2 = torch.zeros_like(msk_s)
+                    new_s_3 = torch.zeros_like(msk_s)
+                    new_s_1 = (msk_s == label_1).to(dtype = torch.float)
+                    new_s_2 = (msk_s == label_2).to(dtype = torch.float)
+                    new_s_3 = (msk_s == label_3).to(dtype = torch.float)
+                pt_list_s.append(random_index_1)
+                pt_list_s.append(random_index_2)
+                pt_list_s.append(random_index_3)
+                msk_list_s.append(new_s_1)
+                msk_list_s.append(new_s_2)
+                msk_list_s.append(new_s_3)
             pts = torch.stack(pt_list_s, dim=0)
             msks = torch.stack(msk_list_s, dim=0)
             pt_list.append(pts)
@@ -268,13 +302,36 @@ def generate_click_prompt(img, msk, pt_label = 1):
             msks = torch.stack(msk_list_s, dim=0)
             pt_list.append(pts)
             msk_list.append(msks)
+    elif args.prompt == 'grid':
+        points_per_side = 32
+        offset = 1 / (2 * points_per_side)
+        for i in range(d):
+            pt_list_s = []
+            msk_list_s = []
+            for j in range(b):
+                msk_s = msk[j,:,:,i]
+                points_side_x = np.linspace(offset * w, (1 - offset) * w, points_per_side)
+                points_side_y = np.linspace(offset * h, (1 - offset) * h, points_per_side)
+                points_x = np.tile(points_side_x[None, :], (points_per_side, 1))
+                points_y = np.tile(points_side_y[:, None], (1, points_per_side))
+                points = np.stack([points_x, points_y], axis=-1).reshape(-1, 2)
+                for point in points:
+                    pt = torch.tensor([point[0], point[1]]).to(device = msk.device)
+                    new_s = msk_s[point[0], point[1]].to(dtype = torch.int)
+                    pt_list_s.append(pt)
+                    msk_list_s.append(new_s)
+            pts = torch.stack(pt_list_s, dim=0)
+            msks = torch.stack(msk_list_s, dim=0)
+            pt_list.append(pts)
+            msk_list.append(msks)
+
 
     pt = torch.stack(pt_list, dim=-1)
     msk = torch.stack(msk_list, dim=-1)
 
     msk = msk.unsqueeze(1)
 
-    return img, pt, msk # [b, 2, d], [b, c, h, w, d]
+    return img, pt, msk
 
 def create_logger(log_dir, phase='train'):
     time_str = time.strftime('%Y-%m-%d-%H-%M')
@@ -294,7 +351,6 @@ def set_log_dir(root_dir, exp_name):
     path_dict = {}
     os.makedirs(root_dir, exist_ok=True)
 
-    # set log path
     exp_path = os.path.join(root_dir, exp_name)
     now = datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
@@ -302,7 +358,6 @@ def set_log_dir(root_dir, exp_name):
     os.makedirs(prefix)
     path_dict['prefix'] = prefix
 
-    # set checkpoint path
     ckpt_path = os.path.join(prefix, 'Model')
     os.makedirs(ckpt_path)
     path_dict['ckpt_path'] = ckpt_path
@@ -311,7 +366,6 @@ def set_log_dir(root_dir, exp_name):
     os.makedirs(log_path)
     path_dict['log_path'] = log_path
 
-    # set sample image path for fid calculation
     sample_path = os.path.join(prefix, 'Samples')
     os.makedirs(sample_path)
     path_dict['sample_path'] = sample_path
@@ -340,7 +394,6 @@ class DiceCoeff(Function):
         t = (2 * self.inter.float() + eps) / self.union.float()
         return t
 
-    # This function has only a single output, so it gets only one gradient
     def backward(self, grad_output):
 
         input, target = self.saved_variables

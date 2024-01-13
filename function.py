@@ -10,7 +10,7 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
     hard = 0
     epoch_loss = 0
     ind = 0
-    # train mode
+
     net.train()
     optimizer.zero_grad()
 
@@ -72,7 +72,7 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
                         image_pe=net.module.prompt_encoder.get_dense_pe(), 
                         sparse_prompt_embeddings=se,
                         dense_prompt_embeddings=de, 
-                        multimask_output=False,
+                        multimask_output=True,
                     )
                 else:
                     pred, _ = net.module.mask_decoder(
@@ -98,7 +98,7 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
                         image_pe=net.prompt_encoder.get_dense_pe(), 
                         sparse_prompt_embeddings=se,
                         dense_prompt_embeddings=de, 
-                        multimask_output=False,
+                        multimask_output=True,
                     )
                 else:  
                     pred, _ = net.mask_decoder(
@@ -123,11 +123,10 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
     return loss
 
 def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
-    # eval mode
     net.eval()
 
     mask_type = torch.float32
-    n_val = len(val_loader) # the number of batch
+    n_val = len(val_loader)
     ave_res, mix_res = (0,0,0,0), (0,0,0,0)
     rater_res = [(0,0,0,0) for _ in range(6)]
     tot = 0
@@ -180,6 +179,27 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                         labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
                         coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
                         pt = (coords_torch, labels_torch)
+                elif args.prompt == 'multi':
+                    pt = rearrange(pt, 'b n d -> (b d) n')
+                    imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
+                    masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
+                    imgs = imgs.repeat(1,3,1,1)
+                    point_labels = torch.ones(imgs.size(0))
+
+                    imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
+                    masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
+
+                    mask_type = torch.float32
+                    ind += 1
+                    b_size,c,w,h = imgs.size()
+                    longsize = w if w >=h else h
+
+                    if point_labels[0] != -1:
+                        point_coords = pt
+                        coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
+                        labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
+                        coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
+                        pt = (coords_torch, labels_torch)
                 elif args.prompt == 'box':
                     pt = rearrange(pt, 'b n d -> (b d) n')
                     imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
@@ -209,6 +229,12 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                                 boxes=None,
                                 masks=None,
                             )
+                        elif args.prompt == 'multi':
+                            se, de = net.module.prompt_encoder(
+                                points=pt,
+                                boxes=None,
+                                masks=None,
+                            )
                         elif args.prompt == 'box':
                             se, de = net.module.prompt_encoder(
                                 points=None,
@@ -222,7 +248,7 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                                 image_pe=net.module.prompt_encoder.get_dense_pe(),
                                 sparse_prompt_embeddings=se,
                                 dense_prompt_embeddings=de, 
-                                multimask_output=False,
+                                multimask_output=True,
                             )
                         else:
                             pred, _ = net.module.mask_decoder(
@@ -241,6 +267,12 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                                 boxes=None,
                                 masks=None,
                             )
+                        elif args.prompt == 'multi':
+                            se, de = net.prompt_encoder(
+                                points=pt,
+                                boxes=None,
+                                masks=None,
+                            )
                         elif args.prompt == 'box':
                             se, de = net.prompt_encoder(
                                 points=None,
@@ -254,7 +286,7 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                                 image_pe=net.prompt_encoder.get_dense_pe(),
                                 sparse_prompt_embeddings=se,
                                 dense_prompt_embeddings=de, 
-                                multimask_output=False,
+                                multimask_output=True,
                             )
                         else:
                             pred, _ = net.mask_decoder(
