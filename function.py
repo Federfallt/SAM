@@ -16,14 +16,18 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
 
     epoch_loss = 0
 
-    lossfunc = DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
+    loss_seg = DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
+    loss_cls = nn.CrossEntropyLoss()
 
     with tqdm(total=len(train_loader), desc=f'Epoch {epoch}', unit='img') as pbar:
         for pack in train_loader:
             imgs = pack['image'].to(dtype = torch.float32, device = device.output_device)
             masks = pack['label'].to(dtype = torch.float32, device = device.output_device)
             if 'pt' not in pack:
-                imgs, pt, masks = generate_click_prompt(imgs, masks)
+                if cls:
+                    imgs, pt, masks, target = generate_click_prompt(imgs, masks)
+                else:
+                    imgs, pt, masks, _ = generate_click_prompt(imgs, masks)
             else:
                 pt = pack['pt']
                 point_labels = pack['p_label']
@@ -109,7 +113,10 @@ def train_sam(args, net: nn.Module, device, optimizer, train_loader, epoch, cls 
                         multimask_output=False,
                     )
 
-            loss = lossfunc(pred, masks)
+            if cls:
+                loss = loss_seg(pred, masks) + loss_cls(output_class, target)
+            else:
+                loss = loss_seg(pred, masks)
 
             pbar.set_postfix(**{'loss (batch)': loss.item()})
             epoch_loss += loss.item()
@@ -133,14 +140,18 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
     hard = 0
     threshold = (0.1, 0.3, 0.5, 0.7, 0.9)
 
-    lossfunc = DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
+    loss_seg = DiceCELoss(sigmoid=True, squared_pred=True, reduction='mean')
+    loss_cls = nn.CrossEntropyLoss()
 
     with tqdm(total=n_val, desc='Validation round', unit='batch', leave=False) as pbar:
         for ind, pack in enumerate(val_loader):
             imgsw = pack['image'].to(dtype = torch.float32, device = device.output_device)
             masksw = pack['label'].to(dtype = torch.float32, device = device.output_device)
             if 'pt' not in pack:
-                imgsw, ptw, masksw = generate_click_prompt(imgsw, masksw)
+                if cls:
+                    imgsw, ptw, masksw, targetw = generate_click_prompt(imgsw, masksw)
+                else:
+                    imgsw, ptw, masksw, _ = generate_click_prompt(imgsw, masksw)
             else:
                 ptw = pack['pt']
                 point_labels = pack['p_label']
@@ -212,6 +223,27 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
 
                     mask_type = torch.float32
                     ind += 1
+                elif args.prompt == 'grid':
+                    pt = rearrange(pt, 'b n d -> (b d) n')
+                    imgs = rearrange(imgs, 'b c h w d -> (b d) c h w ')
+                    masks = rearrange(masks, 'b c h w d -> (b d) c h w ')
+                    imgs = imgs.repeat(1,3,1,1)
+                    point_labels = torch.ones(imgs.size(0))
+
+                    imgs = torchvision.transforms.Resize((args.image_size,args.image_size))(imgs)
+                    masks = torchvision.transforms.Resize((args.out_size,args.out_size))(masks)
+
+                    mask_type = torch.float32
+                    ind += 1
+                    b_size,c,w,h = imgs.size()
+                    longsize = w if w >=h else h
+
+                    if point_labels[0] != -1:
+                        point_coords = pt
+                        coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=device.output_device)
+                        labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=device.output_device)
+                        coords_torch, labels_torch = coords_torch[None, :, :], labels_torch[None, :]
+                        pt = (coords_torch, labels_torch)
 
                 '''init'''
                 if hard:
@@ -239,6 +271,12 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                             se, de = net.module.prompt_encoder(
                                 points=None,
                                 boxes=pt,
+                                masks=None,
+                            )
+                        elif args.prompt == 'grid':
+                            se, de = net.module.prompt_encoder(
+                                points=pt,
+                                boxes=None,
                                 masks=None,
                             )
 
@@ -279,6 +317,12 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                                 boxes=pt,
                                 masks=None,
                             )
+                        elif args.prompt == 'grid':
+                            se, de = net.prompt_encoder(
+                                points=pt,
+                                boxes=None,
+                                masks=None,
+                            )
 
                         if cls:
                             pred, _, output_class = net.mask_decoder(
@@ -296,8 +340,11 @@ def validation_sam(args, net: nn.Module, device, val_loader, epoch, cls = 0):
                                 dense_prompt_embeddings=de, 
                                 multimask_output=False,
                             )
-                
-                    tot += lossfunc(pred, masks)                    
+
+                    if cls:
+                        tot += loss_seg(pred, masks) + loss_cls(output_class, targetw)
+                    else:
+                        tot += loss_seg(pred, masks)                    
 
                     temp = eval_seg(pred, masks, threshold)
                     mix_res = tuple([sum(a) for a in zip(mix_res, temp)])

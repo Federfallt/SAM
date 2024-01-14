@@ -217,6 +217,7 @@ def get_decath_loader(args, device):
 def generate_click_prompt(img, msk):
     pt_list = []
     msk_list = []
+    target_list = []
     b, c, h, w, d = msk.size()
     msk = msk[:,0,:,:,:]
     if args.prompt == 'single':
@@ -308,6 +309,7 @@ def generate_click_prompt(img, msk):
         for i in range(d):
             pt_list_s = []
             msk_list_s = []
+            target_list_s = []
             for j in range(b):
                 msk_s = msk[j,:,:,i]
                 points_side_x = np.linspace(offset * w, (1 - offset) * w, points_per_side)
@@ -317,21 +319,28 @@ def generate_click_prompt(img, msk):
                 points = np.stack([points_x, points_y], axis=-1).reshape(-1, 2)
                 for point in points:
                     pt = torch.tensor([point[0], point[1]]).to(device = msk.device)
-                    new_s = msk_s[point[0], point[1]].to(dtype = torch.int)
+                    label = msk_s[point[0], point[1]]
+                    new_s = torch.zeros_like(msk_s)
+                    new_s = (msk_s == label).to(dtype = torch.float)
+                    target_s = msk_s[point[0], point[1]].to(dtype = torch.int)
                     pt_list_s.append(pt)
                     msk_list_s.append(new_s)
+                    target_list_s.append(target_s)
             pts = torch.stack(pt_list_s, dim=0)
             msks = torch.stack(msk_list_s, dim=0)
+            targets = torch.stack(target_list_s, dim=0)
             pt_list.append(pts)
             msk_list.append(msks)
+            target_list.append(targets)
 
 
     pt = torch.stack(pt_list, dim=-1)
     msk = torch.stack(msk_list, dim=-1)
+    target = torch.staack(target_list, dim=-1)
 
     msk = msk.unsqueeze(1)
 
-    return img, pt, msk
+    return img, pt, msk, target
 
 def create_logger(log_dir, phase='train'):
     time_str = time.strftime('%Y-%m-%d-%H-%M')
